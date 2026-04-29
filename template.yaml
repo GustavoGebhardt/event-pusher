@@ -1,0 +1,154 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Event Pusher - Creates Google Calendar events via API Gateway REST
+
+Parameters:
+  DefaultEventTitle:
+    Type: String
+    Default: "Ocupado"
+  DefaultTimezone:
+    Type: String
+    Default: "America/Sao_Paulo"
+  MaxDurationHours:
+    Type: Number
+    Default: 8
+  MinDurationMinutes:
+    Type: Number
+    Default: 5
+  MaxFutureDays:
+    Type: Number
+    Default: 365
+  AllowPastEvents:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+  ThrottlingBurstLimit:
+    Type: Number
+    Default: 5
+    Description: Peak concurrent requests allowed
+  ThrottlingRateLimit:
+    Type: Number
+    Default: 2
+    Description: Sustained requests per second
+  DailyQuotaLimit:
+    Type: Number
+    Default: 100
+    Description: Maximum requests per day (hard ceiling on Google Calendar API calls)
+  GoogleSecretName:
+    Type: String
+    Default: "event-pusher/google-credentials"
+
+Globals:
+  Function:
+    Runtime: python3.12
+    MemorySize: 256
+    Timeout: 30
+    Tracing: Active
+
+Resources:
+  EventPusherFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: ./
+      Handler: event_pusher.handler.lambda_handler
+      ReservedConcurrentExecutions: 5
+      Environment:
+        Variables:
+          GOOGLE_SECRET_NAME: !Ref GoogleSecretName
+          DEFAULT_TITLE: !Ref DefaultEventTitle
+          DEFAULT_TIMEZONE: !Ref DefaultTimezone
+          MAX_DURATION_HOURS: !Ref MaxDurationHours
+          MIN_DURATION_MINUTES: !Ref MinDurationMinutes
+          MAX_FUTURE_DAYS: !Ref MaxFutureDays
+          ALLOW_PAST_EVENTS: !Ref AllowPastEvents
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${GoogleSecretName}*"
+      Events:
+        CreateEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EventPusherApi
+            Path: /events
+            Method: POST
+            RequestModel:
+              Model: CreateEventModel
+              Required: true
+              ValidateBody: true
+
+  EventPusherApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      TracingEnabled: true
+      Auth:
+        ApiKeyRequired: true
+        UsagePlan:
+          CreateUsagePlan: PER_API
+          Description: "EventPusher daily quota and throttling"
+          Throttle:
+            BurstLimit: !Ref ThrottlingBurstLimit
+            RateLimit: !Ref ThrottlingRateLimit
+          Quota:
+            Limit: !Ref DailyQuotaLimit
+            Period: DAY
+      Models:
+        CreateEventModel:
+          type: object
+          required:
+            - starts_at
+            - ends_at
+          properties:
+            starts_at:
+              type: string
+            ends_at:
+              type: string
+            title:
+              type: string
+              maxLength: 500
+            description:
+              type: string
+            location:
+              type: string
+            timezone:
+              type: string
+            attendees:
+              type: array
+              items:
+                type: string
+          additionalProperties: false
+      GatewayResponses:
+        BAD_REQUEST_BODY:
+          StatusCode: 400
+          ResponseTemplates:
+            application/json: '{"error": "bad_request", "message": "$context.error.validationErrorString"}'
+        THROTTLED:
+          StatusCode: 429
+          ResponseTemplates:
+            application/json: '{"error": "rate_limit_exceeded", "message": "Too many requests. Try again later."}'
+        INVALID_API_KEY:
+          StatusCode: 403
+          ResponseTemplates:
+            application/json: '{"error": "forbidden", "message": "Invalid or missing API key"}'
+        MISSING_AUTHENTICATION_TOKEN:
+          StatusCode: 404
+          ResponseTemplates:
+            application/json: '{"error": "not_found", "message": "Route not found"}'
+
+  EventPusherLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${EventPusherFunction}"
+      RetentionInDays: 30
+
+Outputs:
+  ApiEndpoint:
+    Description: "POST /events to create a calendar event"
+    Value: !Sub "https://${EventPusherApi}.execute-api.${AWS::Region}.amazonaws.com/prod/events"
+  ApiGatewayId:
+    Description: "Run: aws apigateway get-api-keys --include-values to retrieve your API key"
+    Value: !Ref EventPusherApi
