@@ -53,7 +53,6 @@ Resources:
     Properties:
       CodeUri: ./
       Handler: event_pusher.handler.lambda_handler
-      ReservedConcurrentExecutions: 5
       Environment:
         Variables:
           GOOGLE_SECRET_NAME: !Ref GoogleSecretName
