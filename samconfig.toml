@@ -12,9 +12,8 @@ parallel = true
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
 resolve_s3 = true
-region = "us-east-1"
 s3_prefix = "event-pusher"
-parameter_overrides = "DefaultEventTitle=\"Ocupado\" DefaultTimezone=\"America/Sao_Paulo\" MaxDurationHours=\"8\" MinDurationMinutes=\"5\" MaxFutureDays=\"365\" AllowPastEvents=\"false\" ThrottlingBurstLimit=\"2\" ThrottlingRateLimit=\"1\" DailyQuotaLimit=\"20\" GoogleSecretName=\"event-pusher/google-credentials\""
+parameter_overrides = "DefaultEventTitle=\"Ocupado\" DefaultTimezone=\"America/Sao_Paulo\" MaxDurationHours=\"8\" MinDurationMinutes=\"5\" MaxFutureDays=\"365\" AllowPastEvents=\"false\" ThrottlingBurstLimit=\"2\" ThrottlingRateLimit=\"1\" DailyQuotaLimit=\"20\" GoogleSecretName=\"/event-pusher/google-credentials\""
 image_repositories = []
 
 [default.validate.parameters]

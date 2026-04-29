@@ -36,7 +36,7 @@ Parameters:
     Description: Maximum requests per day (hard ceiling on Google Calendar API calls)
   GoogleSecretName:
     Type: String
-    Default: "event-pusher/google-credentials"
+    Default: "/event-pusher/google-credentials"
 
 Globals:
   Function:
@@ -65,8 +65,8 @@ Resources:
       Policies:
         - Statement:
             - Effect: Allow
-              Action: secretsmanager:GetSecretValue
-              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${GoogleSecretName}*"
+              Action: ssm:GetParameter
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GoogleSecretName}"
       Events:
         CreateEvent:
           Type: Api

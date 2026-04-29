@@ -20,7 +20,7 @@ except ImportError:
     sys.exit(1)
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
-SECRET_NAME = "event-pusher/google-credentials"
+SECRET_NAME = "/event-pusher/google-credentials"
 
 
 def main() -> None:
@@ -40,17 +40,14 @@ def main() -> None:
 
     secret_json = json.dumps(secret)
 
-    print("\nCredentials generated. Store in Secrets Manager with:\n")
+    print("\nCredentials generated. Store in SSM Parameter Store with:\n")
+
     print(
-        f"  aws secretsmanager create-secret \\\n"
-        f"    --name {SECRET_NAME} \\\n"
-        f"    --secret-string '{secret_json}'"
-    )
-    print(
-        "\nIf the secret already exists:\n"
-        f"  aws secretsmanager put-secret-value \\\n"
-        f"    --secret-id {SECRET_NAME} \\\n"
-        f"    --secret-string '{secret_json}'"
+        f"  aws ssm put-parameter \\\n"
+        f"    --name \"{SECRET_NAME}\" \\\n"
+        f"    --type \"SecureString\" \\\n"
+        f"    --value '{secret_json}' \\\n"
+        f"    --overwrite"
     )
 
 

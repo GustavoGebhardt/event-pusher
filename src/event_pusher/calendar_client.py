@@ -21,9 +21,9 @@ class GoogleCalendarClient:
         if self._service is not None:
             return self._service
 
-        sm = boto3.client("secretsmanager")
+        ssm = boto3.client("ssm")
         secret = json.loads(
-            sm.get_secret_value(SecretId=self._secret_name)["SecretString"]
+            ssm.get_parameter(Name=self._secret_name, WithDecryption=True)["Parameter"]["Value"]
         )
 
         creds = Credentials(
