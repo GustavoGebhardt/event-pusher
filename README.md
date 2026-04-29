@@ -114,8 +114,8 @@ x-api-key: <your-api-key>
 | Status | `error` field | Cause |
 |---|---|---|
 | `400` | `bad_request` | Malformed JSON or schema violation |
-| `401` | `unauthorized` | `x-api-key` header missing |
-| `403` | `forbidden` | `x-api-key` value invalid |
+| `403` | `forbidden` | Invalid or missing `x-api-key` |
+| `404` | `not_found` | Route not found |
 | `422` | `validation_error` | Fails business rules (e.g. event in the past) |
 | `429` | `rate_limit_exceeded` | Throttle or daily quota exceeded |
 | `500` | `internal_error` | Unexpected Lambda error |
